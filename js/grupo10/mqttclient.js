@@ -74,7 +74,7 @@ var options = {
 	onSuccess: function () {
 		console.log("mqtt connected");
 		// Connection succeeded; subscribe to our topic, you can add multile lines of these
-		client.subscribe("Taller MQTT", { qos: 1 });
+		client.subscribe("Probar_1", { qos: 1 });
 	},
 	onFailure: function (message) {
 		console.log("Connection failed: " + message.errorMessage);
