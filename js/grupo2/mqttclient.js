@@ -22,86 +22,58 @@ client.onConnectionLost = function (responseObject) {
 /*################################################################################################*/
 /*####################################### LLEGA EL MENSAJE########################################*/
 /*################################################################################################*/
-let prevCPUValue = 0;
-let prevMemoryValue = 0;
-let prevDiskValue = 0;
-let prevRecepcionValue = 0;
+var registros = [];
 
 client.onMessageArrived = function (message) {
-	let destination = message.destinationName;
-	if (destination === "probar_1") {
+    try {
+        // Parsea el mensaje JSON recibido
         let response = JSON.parse(message.payloadString);
-        dataFormat = response;
-        let dataCPU = dataFormat.CPU;
-        let dataMemoria = dataFormat.Memoria;
-        let dataDisco = dataFormat.Disco;
-        let dataRecepcion = dataFormat.Recepcion;
-        
-        //info pc
-        document.getElementById("arquitecturaValue").innerText = response.Arquitectura;
-        document.getElementById("sistemaValue").innerText = response.Sistema;
-        document.getElementById("ramValue").innerText = response.Ram;
-        document.getElementById("procesadorValue").innerText = response.Procesador;
-        document.getElementById("almacenamientoValue").innerText = response.Almacenamiento;
 
-        // Calcular la diferencia con respecto al valor anterior
-        let diffCPU = dataCPU - prevCPUValue;
-        let diffMemory = dataMemoria - prevMemoryValue;
-        let diffDisk = dataDisco - prevDiskValue;
-        let diffRecepcion = dataRecepcion - prevRecepcionValue;
+        // Verifica si el mensaje es un arreglo y contiene datos
+        if (Array.isArray(response) && response.length >0) {
+            // Actualiza la tabla con los nuevos datos
+            updateTable(response);
+        }else{
+            document.getElementById("temperaturaValue").textContent = response.temperatura;
+            document.getElementById("cpuValue").textContent = response.rendimiento_cpu + '%';
+            document.getElementById("memoriaValue").textContent = response.rendimiento_memoria + '%';
+            document.getElementById("redValue").textContent = response.rendimiento_red + ' bytes';
+        }
 
-        // Calcular el porcentaje de cambio
-        let percentageCPU = calculatePercentage(diffCPU, prevCPUValue);
-        let percentageMemory = calculatePercentage(diffMemory, prevMemoryValue);
-        let percentageDisk = calculatePercentage(diffDisk, prevDiskValue);
-        let percentageRecepcion = calculatePercentage(diffRecepcion, prevRecepcionValue);
-
-        // Actualizar los valores en tiempo real en la página
-        document.getElementById("cpuValue").innerText = dataCPU;
-        document.getElementById("memoryValue").innerText = dataMemoria;
-        document.getElementById("diskValue").innerText = dataDisco;
-        document.getElementById("RecepcionValue").innerText = dataRecepcion;
-
-        // Actualizar los porcentajes en la página
-        document.getElementById("cpuPercentage").innerHTML = getColoredPercentage(percentageCPU);
-        document.getElementById("memoryPercentage").innerHTML = getColoredPercentage(percentageMemory);
-        document.getElementById("diskPercentage").innerHTML = getColoredPercentage(percentageDisk);
-        document.getElementById("RecepcionPercentage").innerHTML = getColoredPercentage(percentageRecepcion);
-
-        // Actualizar los valores anteriores con los nuevos valores
-        prevCPUValue = dataCPU;
-        prevMemoryValue = dataMemoria;
-        prevDiskValue = dataDisco;
-        prevRecepcionValue = dataRecepcion;
-
-        // Cargar datos CPU, Memoria y Almacenamiento en las gráficas
-        addData(myChartCPU, dataCPU);
-        addData2(myChartMemory, dataMemoria);
-        addData3(myChartDisk, dataDisco);
+        // Imprime el mensaje recibido en la consola si es necesario
+        console.log("Mensaje recibido:", response);
+    } catch (error) {
+        console.error("Error al procesar el mensaje:", error);
     }
 };
 
-// Función para calcular el porcentaje de cambio
-function calculatePercentage(diff, prevValue) {
-    if (prevValue === 0) {
-        return "0"; // Si el valor anterior es cero, el porcentaje de cambio es cero
+// Función para actualizar la tabla con los nuevos datos
+function updateTable(data) {
+    registros = data; // Actualiza los registros
+
+    var tabla = document.getElementById("Tabla");
+    // Elimina todas las filas existentes en la tabla, incluidos los encabezados
+    tabla.innerHTML = "";
+
+    // Agrega una nueva fila para los encabezados
+    var filaEncabezado = tabla.insertRow(0);
+    var encabezados = ["Fecha/Hora", "Mac Address", "CPU", "Memoria", "Red", "Temperatura"];
+    for (var i = 0; i < encabezados.length; i++) {
+        var encabezado = filaEncabezado.insertCell(i);
+        encabezado.innerHTML = "<b>" + encabezados[i] + "</b>";
     }
 
-    let percentage = ((diff / prevValue) * 100).toFixed(2);
-    if (isFinite(percentage)) {
-        return percentage >= 0 ? "+" + percentage : percentage;
-    } else {
-        return "0";
-    }
-}
-// Función para obtener el porcentaje coloreado
-function getColoredPercentage(percentage) {
-    if (parseFloat(percentage) > 0) {
-        return '<span style="color: green;">' + percentage + '%</span>';
-    } else if (parseFloat(percentage) < 0) {
-        return '<span style="color: red;">' + percentage + '%</span>';
-    } else {
-        return percentage + '%';
+    // Agrega las filas con los datos recibidos
+    for (let i = 0; i < registros.length; i++) {
+        var fila = tabla.insertRow(i);
+        var registro = registros[i];
+        // Agrega las celdas con los datos del registro
+        fila.insertCell(0).innerHTML = registro.fecha_hora;
+        fila.insertCell(1).innerHTML = registro.mac;
+        fila.insertCell(2).innerHTML = registro.cpu + '%';
+        fila.insertCell(3).innerHTML = registro.memoria + '%';
+        fila.insertCell(4).innerHTML = registro.red + ' bytes';
+        fila.insertCell(5).innerHTML = registro.temperatura;
     }
 }
 
@@ -110,13 +82,12 @@ var options = {
 	onSuccess: function () {
 		console.log("mqtt connected");
 		// Connection succeeded; subscribe to our topic, you can add multile lines of these
-		client.subscribe("probar_1", { qos: 1 });
+		client.subscribe("Taller MQTT", { qos: 1 });
 	},
 	onFailure: function (message) {
 		console.log("Connection failed: " + message.errorMessage);
 	},
 };
-
 
 function testMqtt(){
 	console.log("hi");
