@@ -22,22 +22,24 @@ client.onConnectionLost = function (responseObject) {
 /*################################################################################################*/
 /*####################################### LLEGA EL MENSAJE########################################*/
 /*################################################################################################*/
-let prevCPUValue = 0;
-let prevMemoryValue = 0;
-let prevDiskValue = 0;
-let prevRecepcionValue = 0;
+var registros = [];
 
 client.onMessageArrived = function (message) {
     try {
         // Parsea el mensaje JSON recibido
         let response = JSON.parse(message.payloadString);
 
-        // Actualiza los elementos HTML con los datos del mensaje
-        document.getElementById("temperaturaValue").innerHTML = response.temperatura;
-        document.getElementById("cpuValue").innerHTML = response.rendimiento_cpu + '%';
-        document.getElementById("memoriaValue").innerHTML = response.rendimiento_memoria + '%';
-        document.getElementById("redValue").innerHTML = response.rendimiento_red.toFixed(2) + ' bytes';
-        
+        // Verifica si el mensaje es un arreglo y contiene datos
+        if (Array.isArray(response) && response.length >0) {
+            // Actualiza la tabla con los nuevos datos
+            updateTable(response);
+        }else{
+            document.getElementById("temperaturaValue").textContent = response.temperatura;
+            document.getElementById("cpuValue").textContent = response.rendimiento_cpu + '%';
+            document.getElementById("memoriaValue").textContent = response.rendimiento_memoria + '%';
+            document.getElementById("redValue").textContent = response.rendimiento_red + ' bytes';
+        }
+
         // Imprime el mensaje recibido en la consola si es necesario
         console.log("Mensaje recibido:", response);
     } catch (error) {
@@ -45,27 +47,33 @@ client.onMessageArrived = function (message) {
     }
 };
 
-// Función para calcular el porcentaje de cambio
-function calculatePercentage(diff, prevValue) {
-    if (prevValue === 0) {
-        return "0"; // Si el valor anterior es cero, el porcentaje de cambio es cero
+// Función para actualizar la tabla con los nuevos datos
+function updateTable(data) {
+    registros = data; // Actualiza los registros
+
+    var tabla = document.getElementById("Tabla");
+    // Elimina todas las filas existentes en la tabla, incluidos los encabezados
+    tabla.innerHTML = "";
+
+    // Agrega una nueva fila para los encabezados
+    var filaEncabezado = tabla.insertRow(0);
+    var encabezados = ["Fecha/Hora", "Mac Address", "CPU", "Memoria", "Red", "Temperatura"];
+    for (var i = 0; i < encabezados.length; i++) {
+        var encabezado = filaEncabezado.insertCell(i);
+        encabezado.innerHTML = "<b>" + encabezados[i] + "</b>";
     }
 
-    let percentage = ((diff / prevValue) * 100).toFixed(2);
-    if (isFinite(percentage)) {
-        return percentage >= 0 ? "+" + percentage : percentage;
-    } else {
-        return "0";
-    }
-}
-// Función para obtener el porcentaje coloreado
-function getColoredPercentage(percentage) {
-    if (parseFloat(percentage) > 0) {
-        return '<span style="color: green;">' + percentage + '%</span>';
-    } else if (parseFloat(percentage) < 0) {
-        return '<span style="color: red;">' + percentage + '%</span>';
-    } else {
-        return percentage + '%';
+    // Agrega las filas con los datos recibidos
+    for (let i = 0; i < registros.length; i++) {
+        var fila = tabla.insertRow(i);
+        var registro = registros[i];
+        // Agrega las celdas con los datos del registro
+        fila.insertCell(0).innerHTML = registro.fecha_hora;
+        fila.insertCell(1).innerHTML = registro.mac;
+        fila.insertCell(2).innerHTML = registro.cpu + '%';
+        fila.insertCell(3).innerHTML = registro.memoria + '%';
+        fila.insertCell(4).innerHTML = registro.red + ' bytes';
+        fila.insertCell(5).innerHTML = registro.temperatura;
     }
 }
 
@@ -80,7 +88,6 @@ var options = {
 		console.log("Connection failed: " + message.errorMessage);
 	},
 };
-
 
 function testMqtt(){
 	console.log("hi");
